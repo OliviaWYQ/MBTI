@@ -1,12 +1,13 @@
 /**
- * SBTI 评分引擎 — 纯函数，无 DOM 依赖
+ * 猫BTI 评分引擎 — 纯函数，无 DOM 依赖
+ * 基于 SBTI 引擎改写：四维度二极模型 + 每维独立阈值 + 平票偏好
  */
 
 /**
- * 按维度求和：每维度 2 题，分值相加 (范围 2-6)
+ * 按维度求和：每维度 2 题，分值相加
  * @param {Object} answers  { q1: 2, q3: 1, ... }
- * @param {Array}  questions 题目定义数组
- * @returns {Object} { S1: 5, S2: 3, ... }
+ * @param {Array}  questions 题目定义数组（仅计分题有有效 dim）
+ * @returns {Object} { IE: 5, ND: 3, ... }
  */
 export function calcDimensionScores(answers, questions) {
   const scores = {}
@@ -18,16 +19,18 @@ export function calcDimensionScores(answers, questions) {
 }
 
 /**
- * 原始分 → L/M/H 等级
- * @param {Object} scores      { S1: 5, ... }
- * @param {Object} thresholds  { L: [2,3], M: [4,4], H: [5,6] }
- * @returns {Object} { S1: 'H', S2: 'L', ... }
+ * 原始分 → L/M/H 等级（支持每维独立阈值，缺省用全局 levelThresholds）
+ * @param {Object} scores        { IE: 5, ... }
+ * @param {Object} scoringConfig config.scoring
+ * @returns {Object} { IE: 'H', ND: 'L', ... }
  */
-export function scoresToLevels(scores, thresholds) {
+export function scoresToLevels(scores, scoringConfig) {
+  const { levelThresholds, dimThresholds } = scoringConfig
   const levels = {}
   for (const [dim, score] of Object.entries(scores)) {
-    if (score <= thresholds.L[1]) levels[dim] = 'L'
-    else if (score >= thresholds.H[0]) levels[dim] = 'H'
+    const th = (dimThresholds && dimThresholds[dim]) || levelThresholds
+    if (score <= th.L[1]) levels[dim] = 'L'
+    else if (score >= th.H[0]) levels[dim] = 'H'
     else levels[dim] = 'M'
   }
   return levels
@@ -40,7 +43,7 @@ const LEVEL_NUM = { L: 1, M: 2, H: 3 }
 
 /**
  * 解析人格类型的 pattern 字符串
- * "HHH-HMH-MHH-HHH-MHM" → ['H','H','H','H','M','H','M','H','H','H','H','H','M','H','M']
+ * "LHHH" → ['L','H','H','H']
  */
 export function parsePattern(pattern) {
   return pattern.replace(/-/g, '').split('')
@@ -48,13 +51,14 @@ export function parsePattern(pattern) {
 
 /**
  * 计算用户向量与类型 pattern 的曼哈顿距离
- * @param {Object} userLevels  { S1: 'H', S2: 'L', ... }
- * @param {Array}  dimOrder    ['S1','S2','S3','E1',...]
- * @param {string} pattern     "HHH-HMH-MHH-HHH-MHM"
+ * @param {Object} userLevels  { IE: 'H', ND: 'L', ... }
+ * @param {Array}  dimOrder    ['IE','ND','MF','RP']
+ * @param {string} pattern     "LHHH"
  * @returns {{ distance: number, exact: number, similarity: number }}
  */
 export function matchType(userLevels, dimOrder, pattern) {
   const typeLevels = parsePattern(pattern)
+  const maxDistance = dimOrder.length * 2
   let distance = 0
   let exact = 0
 
@@ -66,46 +70,70 @@ export function matchType(userLevels, dimOrder, pattern) {
     if (diff === 0) exact++
   }
 
-  const similarity = Math.max(0, Math.round((1 - distance / 30) * 100))
+  const similarity = Math.max(0, Math.round((1 - distance / maxDistance) * 100))
   return { distance, exact, similarity }
 }
 
 /**
+ * 平票偏好得分：用户为 M(平票) 的维度上，pattern 字母与 tieBreak 匹配的数量
+ */
+function tieBreakScore(type, userLevels, dimOrder, tieBreak) {
+  if (!tieBreak) return 0
+  const typeLevels = parsePattern(type.pattern)
+  let score = 0
+  for (let i = 0; i < dimOrder.length; i++) {
+    const dim = dimOrder[i]
+    if (userLevels[dim] === 'M' && typeLevels[i] === tieBreak[dim]) score++
+  }
+  return score
+}
+
+/**
  * 匹配所有类型，排序，应用特殊覆盖
- * @param {Object}  userLevels   { S1: 'H', ... }
- * @param {Array}   dimOrder     维度顺序
- * @param {Array}   standardTypes 标准类型数组
- * @param {Array}   specialTypes  特殊类型数组
- * @param {Object}  options      { isDrunk: boolean }
+ * @param {Object}  userLevels     { IE: 'H', ... }
+ * @param {Array}   dimOrder       维度顺序
+ * @param {Array}   standardTypes  标准类型数组
+ * @param {Array}   specialTypes   特殊类型数组
+ * @param {Object}  options        { isCatPerson: boolean }
+ * @param {Object}  scoringConfig  config.scoring（tieBreak / fallbackThreshold）
+ * @param {Object}  specialCodes   config.specialCodes { hidden, fallback }
  * @returns {{ primary: Object, secondary: Object|null, rankings: Array, mode: string }}
  */
-export function determineResult(userLevels, dimOrder, standardTypes, specialTypes, options = {}) {
+export function determineResult(userLevels, dimOrder, standardTypes, specialTypes, options = {}, scoringConfig = {}, specialCodes = {}) {
+  const tieBreak = scoringConfig.tieBreak
   const rankings = standardTypes.map((type) => ({
     ...type,
     ...matchType(userLevels, dimOrder, type.pattern),
+    _tie: tieBreakScore(type, userLevels, dimOrder, tieBreak),
   }))
 
-  // 排序：距离升序 → 精准命中降序 → 相似度降序
-  rankings.sort((a, b) => a.distance - b.distance || b.exact - a.exact || b.similarity - a.similarity)
+  // 排序：距离升序 → 平票偏好降序 → 精准命中降序 → 相似度降序
+  rankings.sort((a, b) =>
+    a.distance - b.distance ||
+    b._tie - a._tie ||
+    b.exact - a.exact ||
+    b.similarity - a.similarity
+  )
 
   const best = rankings[0]
-  const drunk = specialTypes.find((t) => t.code === 'DRUNK')
-  const hhhh = specialTypes.find((t) => t.code === 'HHHH')
+  const hidden = specialTypes.find((t) => t.code === (specialCodes.hidden || 'CAT-H'))
+  const stray = specialTypes.find((t) => t.code === (specialCodes.fallback || 'STRAY'))
+  const fallbackThreshold = scoringConfig.fallbackThreshold ?? 60
 
-  // 酒鬼覆盖
-  if (options.isDrunk && drunk) {
+  // 隐藏人格覆盖（彩蛋门触发）
+  if (options.isCatPerson && hidden) {
     return {
-      primary: { ...drunk, similarity: best.similarity, exact: best.exact },
+      primary: { ...hidden, similarity: best.similarity, exact: best.exact },
       secondary: best,
       rankings,
-      mode: 'drunk',
+      mode: 'hidden',
     }
   }
 
-  // 傻乐者兜底
-  if (best.similarity < 60 && hhhh) {
+  // 流浪猫兜底
+  if (best.similarity < fallbackThreshold && stray) {
     return {
-      primary: { ...hhhh, similarity: best.similarity, exact: best.exact },
+      primary: { ...stray, similarity: best.similarity, exact: best.exact },
       secondary: best,
       rankings,
       mode: 'fallback',

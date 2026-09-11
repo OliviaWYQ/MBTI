@@ -1,19 +1,23 @@
-# SBTI 人格测试
+# 猫BTI 人格测试
 
-> MBTI已经过时，SBTI来了。
+> MBTI已经过时，猫BTI来了。
 
-一个开源的娱乐性人格测试项目，基于 B站UP主 [@蛆肉儿串儿](https://space.bilibili.com/417038183) 的原创测试。
+一个开源的娱乐性人格测试项目（🐱 四维度十六猫格 + 隐藏人形猫 + 流浪猫兜底）。
+
+**二创说明**：本项目基于 [SBTI](https://github.com/pingfanfan/SBTI)（MIT）改写，SBTI 基于 B站UP主 [@蛆肉儿串儿](https://space.bilibili.com/417038183) 的原创测试。原 LICENSE 与署名保留。
 
 ## 在线体验
 
-👉 [点击开始测试](https://pingfanfan.github.io/SBTI/)
+👉 [点击开始测试](https://oliviawyq.github.io/MBTI/)
 
 ## 特性
 
-- 🧠 **27种人格类型** — 25种标准类型 + 2种隐藏/兜底类型
-- 📊 **15个评估维度** — 自我、情感、态度、行动、社交五大模型
-- 🎯 **曼哈顿距离匹配** — 基于15维向量的科学匹配算法
-- 🍺 **隐藏彩蛋** — 酒鬼人格触发机制
+- 🐱 **16 种猫格类型** — 四维度十六型 + 隐藏人形猫 + 流浪猫兜底
+- 📊 **4 个评估维度** — 陪伴方式（I/E）、作息（N/D）、二创欲（M/F）、贫富（R/P）
+- 🎯 **曼哈顿距离匹配** — 每维独立阈值 + 平票偏好规则
+- 🥚 **隐藏彩蛋** — "地上（和宠物一起）"触发人形猫；匹配度过低落入流浪猫
+- 💰 **价格追问** — 预算题选低档自动追问 Gabor-Granger 价位
+- 📮 **领养证登记** — 结果页邮箱登记（`config.adoptEndpoint` 配置表单服务地址）
 - 📱 **移动端优先** — 响应式设计，手机体验友好
 - 🔧 **易于定制** — 数据与代码分离，改 JSON 即可创建你自己的测试
 
@@ -42,8 +46,8 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/pingfanfan/SBTI.git
-cd SBTI
+git clone https://github.com/OliviaWYQ/MBTI.git
+cd MBTI
 
 # 安装依赖
 npm install

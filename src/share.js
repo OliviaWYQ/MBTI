@@ -5,27 +5,38 @@
 const LEVEL_NUM = { L: 1, M: 2, H: 3 }
 const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
 
+// 猫BTI 暖橙主题
+const C = {
+  bg: '#faf3ea',
+  card: '#ffffff',
+  text: '#3d2b1f',
+  textSecondary: '#8a7360',
+  accent: '#d96c2f',
+  accentLight: '#fbe8d8',
+  accentDeep: '#b8551f',
+}
+
 /**
  * 生成分享卡片并下载
  */
 export async function generateShareImage(primary, userLevels, dimOrder, dimDefs, mode) {
   const dpr = 2
   const W = 720
-  const H = 1280
+  // 先画在超高画布上量内容高度，再裁剪，避免底部大片空白
   const canvas = document.createElement('canvas')
   canvas.width = W * dpr
-  canvas.height = H * dpr
+  canvas.height = 10000 * dpr
   const ctx = canvas.getContext('2d')
   ctx.scale(dpr, dpr)
 
   // 背景
-  ctx.fillStyle = '#f0f4f1'
-  ctx.fillRect(0, 0, W, H)
+  ctx.fillStyle = C.bg
+  ctx.fillRect(0, 0, W, 10000)
 
   // 卡片白底
-  const cardX = 32, cardY = 32, cardW = W - 64, cardH = H - 64
+  const cardX = 32, cardY = 32, cardW = W - 64, cardH = 10000 - 64
   roundRect(ctx, cardX, cardY, cardW, cardH, 20)
-  ctx.fillStyle = '#ffffff'
+  ctx.fillStyle = C.card
   ctx.fill()
   ctx.shadowColor = 'transparent'
 
@@ -34,37 +45,37 @@ export async function generateShareImage(primary, userLevels, dimOrder, dimDefs,
   // Kicker
   ctx.textAlign = 'center'
   ctx.font = '400 22px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#6b7b6e'
-  const kickerText = mode === 'drunk' ? '隐藏人格已激活' : mode === 'fallback' ? '系统强制兜底' : '你的主类型'
+  ctx.fillStyle = C.textSecondary
+  const kickerText = mode === 'hidden' ? '隐藏人格已激活' : mode === 'fallback' ? '系统强制兜底' : '你的主猫格'
   ctx.fillText(kickerText, W / 2, y)
   y += 56
 
   // 类型代码
   ctx.font = '900 72px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#4c6752'
+  ctx.fillStyle = C.accent
   ctx.fillText(primary.code, W / 2, y)
   y += 40
 
   // 中文名
   ctx.font = '600 32px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#2c3e2d'
+  ctx.fillStyle = C.text
   ctx.fillText(primary.cn, W / 2, y)
   y += 36
 
   // 匹配度徽章
-  const badgeText = `匹配度 ${primary.similarity}%` + (primary.exact != null ? ` · 精准命中 ${primary.exact}/15 维` : '')
+  const badgeText = `匹配度 ${primary.similarity}%` + (primary.exact != null ? ` · 精准命中 ${primary.exact}/${dimOrder.length} 维` : '')
   ctx.font = '500 20px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
   const badgeW = ctx.measureText(badgeText).width + 40
   roundRect(ctx, (W - badgeW) / 2, y - 16, badgeW, 36, 18)
-  ctx.fillStyle = '#e8f0ea'
+  ctx.fillStyle = C.accentLight
   ctx.fill()
-  ctx.fillStyle = '#4c6752'
+  ctx.fillStyle = C.accentDeep
   ctx.fillText(badgeText, W / 2, y + 6)
   y += 44
 
   // Intro
   ctx.font = 'italic 600 22px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#2c3e2d'
+  ctx.fillStyle = C.text
   const introLines = wrapText(ctx, primary.intro || '', cardW - 80)
   for (const line of introLines) {
     ctx.fillText(line, W / 2, y)
@@ -96,7 +107,7 @@ export async function generateShareImage(primary, userLevels, dimOrder, dimDefs,
 
     // 维度名
     ctx.font = '600 16px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-    ctx.fillStyle = '#2c3e2d'
+    ctx.fillStyle = C.text
     ctx.fillText(name, barX, y)
 
     // 进度条背景
@@ -104,19 +115,19 @@ export async function generateShareImage(primary, userLevels, dimOrder, dimDefs,
     const progW = barMaxW - dimNameW - 50
     const progH = 12
     roundRect(ctx, progX, y - 10, progW, progH, 6)
-    ctx.fillStyle = '#e8f0ea'
+    ctx.fillStyle = C.accentLight
     ctx.fill()
 
     // 进度条填充
     const fillW = (val / 3) * progW
     roundRect(ctx, progX, y - 10, fillW, progH, 6)
-    ctx.fillStyle = val === 3 ? '#2d7a4a' : val === 2 ? '#4c6752' : '#b8860b'
+    ctx.fillStyle = val === 3 ? C.accent : val === 2 ? C.textSecondary : C.accentDeep
     ctx.fill()
 
     // 等级标签
     ctx.textAlign = 'right'
     ctx.font = '600 14px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-    ctx.fillStyle = val === 3 ? '#2d7a4a' : val === 2 ? '#4c6752' : '#b8860b'
+    ctx.fillStyle = val === 3 ? C.accent : val === 2 ? C.textSecondary : C.accentDeep
     ctx.fillText(LEVEL_LABEL[level], barX + barMaxW, y)
     ctx.textAlign = 'left'
 
@@ -125,17 +136,48 @@ export async function generateShareImage(primary, userLevels, dimOrder, dimDefs,
 
   y += 16
 
-  // 底部水印
+  // 描述正文（跳过第 1 段——和卡片顶部的代码/徽章重复，从第 2 段开始画）
+  const paras = (primary.desc || '').split('\n').map((p) => p.trim()).filter(Boolean)
+  const bodyParas = paras.length > 1 ? paras.slice(1) : paras
+  if (bodyParas.length) {
+    y += 10
+    ctx.textAlign = 'left'
+    ctx.font = '400 20px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
+    ctx.fillStyle = C.textSecondary
+    const textX = cardX + 56
+    const textMaxW = cardW - 112
+    for (const para of bodyParas) {
+      const lines = wrapText(ctx, para, textMaxW)
+      for (const line of lines) {
+        ctx.fillText(line, textX, y)
+        y += 32
+      }
+      y += 12
+    }
+    y -= 12
+  }
+
+  // 底部水印（高度在裁剪时确定，先占位在内容下方）
+  const contentBottom = y
+  const H = Math.max(contentBottom + 80, 900)
   ctx.textAlign = 'center'
   ctx.font = '400 18px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
-  ctx.fillStyle = '#aab8ac'
-  ctx.fillText('SBTI 人格测试 · 仅供娱乐', W / 2, H - cardY - 24)
+  ctx.fillStyle = '#c9b8a6'
+  ctx.fillText('猫BTI · 仅供娱乐', W / 2, H - cardY - 24)
+
+  // 按内容高度裁剪
+  const final = document.createElement('canvas')
+  final.width = W * dpr
+  final.height = H * dpr
+  final.getContext('2d').drawImage(canvas, 0, 0, W * dpr, H * dpr, 0, 0, W * dpr, H * dpr)
 
   // 下载
   const link = document.createElement('a')
-  link.download = `SBTI-${primary.code}.png`
-  link.href = canvas.toDataURL('image/png')
+  link.download = `猫BTI-${primary.code}.png`
+  link.href = final.toDataURL('image/png')
   link.click()
+
+  return final
 }
 
 /**
@@ -151,9 +193,9 @@ function drawShareRadar(ctx, cx, cy, maxR, userLevels, dimOrder, dimDefs) {
     const r = (lv / 3) * maxR
     ctx.beginPath()
     ctx.arc(cx, cy, r, 0, Math.PI * 2)
-    ctx.fillStyle = lv === 3 ? 'rgba(76,103,82,0.06)' : lv === 2 ? 'rgba(76,103,82,0.04)' : 'rgba(76,103,82,0.02)'
+    ctx.fillStyle = lv === 3 ? 'rgba(217,108,47,0.06)' : lv === 2 ? 'rgba(217,108,47,0.04)' : 'rgba(217,108,47,0.02)'
     ctx.fill()
-    ctx.strokeStyle = 'rgba(76,103,82,0.12)'
+    ctx.strokeStyle = 'rgba(217,108,47,0.12)'
     ctx.lineWidth = 0.5
     ctx.stroke()
   }
@@ -170,7 +212,7 @@ function drawShareRadar(ctx, cx, cy, maxR, userLevels, dimOrder, dimDefs) {
     ctx.beginPath()
     ctx.moveTo(cx, cy)
     ctx.lineTo(x, y)
-    ctx.strokeStyle = 'rgba(76,103,82,0.1)'
+    ctx.strokeStyle = 'rgba(217,108,47,0.1)'
     ctx.lineWidth = 0.5
     ctx.stroke()
 
@@ -178,7 +220,7 @@ function drawShareRadar(ctx, cx, cy, maxR, userLevels, dimOrder, dimDefs) {
     const lx = cx + Math.cos(angle) * lr
     const ly = cy + Math.sin(angle) * lr
     const label = (dimDefs[dimOrder[i]]?.name || dimOrder[i]).replace(/^[A-Za-z0-9]+\s*/, '')
-    ctx.fillStyle = '#6b7b6e'
+    ctx.fillStyle = C.textSecondary
     ctx.fillText(label, lx, ly)
   }
 
@@ -194,9 +236,9 @@ function drawShareRadar(ctx, cx, cy, maxR, userLevels, dimOrder, dimDefs) {
     else ctx.lineTo(x, y)
   }
   ctx.closePath()
-  ctx.fillStyle = 'rgba(76,103,82,0.2)'
+  ctx.fillStyle = 'rgba(217,108,47,0.2)'
   ctx.fill()
-  ctx.strokeStyle = 'rgba(76,103,82,0.6)'
+  ctx.strokeStyle = 'rgba(217,108,47,0.6)'
   ctx.lineWidth = 2
   ctx.stroke()
 
@@ -208,7 +250,7 @@ function drawShareRadar(ctx, cx, cy, maxR, userLevels, dimOrder, dimDefs) {
     const y = cy + Math.sin(angle) * r
     ctx.beginPath()
     ctx.arc(x, y, 3, 0, Math.PI * 2)
-    ctx.fillStyle = '#4c6752'
+    ctx.fillStyle = C.accent
     ctx.fill()
   }
 }

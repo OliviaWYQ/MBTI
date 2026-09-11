@@ -4,6 +4,60 @@ import { generateShareImage } from './share.js'
 const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
 const LEVEL_CLASS = { L: 'level-low', M: 'level-mid', H: 'level-high' }
 
+/** 领养证登记（本地 v1：localStorage；正式投放接表单服务） */
+function setupAdoption(primary) {
+  const input = document.getElementById('email-input')
+  const btn = document.getElementById('btn-adopt')
+  const note = document.getElementById('adopt-note')
+  if (!input || !btn) return
+
+  input.value = ''
+  input.disabled = false
+  btn.disabled = false
+  btn.textContent = '登记领养证'
+  note.textContent = '它预计明年上市，上市当天生成你的专属猫格领养证。'
+
+  btn.onclick = async () => {
+    const email = input.value.trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      note.textContent = '邮箱格式好像不太对，再检查一下？'
+      return
+    }
+    const ch = new URLSearchParams(location.search).get('ch') || 'direct'
+    const record = { email, code: primary.code, cn: primary.cn, ch, ts: new Date().toISOString() }
+
+    // 有配置端点则 POST 到表单服务，失败或无端点时降级 localStorage
+    const endpoint = config.adoptEndpoint
+    let delivered = false
+    if (endpoint) {
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(record),
+        })
+        delivered = res.ok
+      } catch (e) {
+        delivered = false
+      }
+    }
+    try {
+      const key = 'maobi_adoptions'
+      const list = JSON.parse(localStorage.getItem(key) || '[]')
+      list.push({ ...record, delivered })
+      localStorage.setItem(key, JSON.stringify(list))
+    } catch (e) {
+      console.warn('adoption persist failed', e)
+    }
+    input.disabled = true
+    btn.disabled = true
+    btn.textContent = '登记成功'
+    note.textContent = endpoint && delivered
+      ? `领养证排队中：${primary.code} · ${primary.cn}。上市当天见。`
+      : `领养证排队中：${primary.code} · ${primary.cn}。（已本地记录）`
+  }
+}
+
 /**
  * 渲染测试结果
  */
@@ -12,9 +66,9 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
 
   // Kicker
   const kicker = document.getElementById('result-kicker')
-  if (mode === 'drunk') kicker.textContent = '隐藏人格已激活'
+  if (mode === 'hidden') kicker.textContent = '隐藏人格已激活'
   else if (mode === 'fallback') kicker.textContent = '系统强制兜底'
-  else kicker.textContent = '你的主类型'
+  else kicker.textContent = '你的主猫格'
 
   // 主类型
   document.getElementById('result-code').textContent = primary.code
@@ -22,16 +76,26 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
 
   // 匹配度
   document.getElementById('result-badge').textContent =
-    `匹配度 ${primary.similarity}%` + (primary.exact != null ? ` · 精准命中 ${primary.exact}/15 维` : '')
+    `匹配度 ${primary.similarity}%` + (primary.exact != null ? ` · 精准命中 ${primary.exact}/${dimOrder.length} 维` : '')
 
-  // Intro & 描述
+  // Intro & 描述（desc 支持 \n 分段）
   document.getElementById('result-intro').textContent = primary.intro || ''
-  document.getElementById('result-desc').textContent = primary.desc || ''
+  const descEl = document.getElementById('result-desc')
+  descEl.innerHTML = ''
+  ;(primary.desc || '').split('\n').filter((p) => p.trim()).forEach((para) => {
+    const p = document.createElement('p')
+    p.textContent = para
+    descEl.appendChild(p)
+  })
 
   // 次要匹配
   const secEl = document.getElementById('result-secondary')
-  if (secondary && (mode === 'drunk' || mode === 'fallback')) {
+  if (secondary && (mode === 'hidden' || mode === 'fallback')) {
     secEl.style.display = ''
+    const labelEl = secEl.querySelector('.secondary-label')
+    if (labelEl) {
+      labelEl.textContent = mode === 'hidden' ? '你本来会是' : '最接近的猫格'
+    }
     document.getElementById('secondary-info').textContent =
       `${secondary.code}（${secondary.cn}）· 匹配度 ${secondary.similarity}%`
   } else {
@@ -82,16 +146,19 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
   document.getElementById('disclaimer').textContent =
     mode === 'normal' ? config.display.funNote : config.display.funNoteSpecial
 
+  // 领养证登记
+  setupAdoption(primary)
+
   // 下载分享图
   const btnDownload = document.getElementById('btn-download')
   btnDownload.onclick = () => {
     generateShareImage(primary, userLevels, dimOrder, dimDefs, mode)
   }
 
-  // 复制 AI Agent 命令
+  // 复制开源部署命令（保留原项目出处）
   const btnAgent = document.getElementById('btn-agent')
   btnAgent.onclick = () => {
-    const cmd = `git clone https://github.com/pingfanfan/SBTI.git && cd SBTI && npm install && npm run dev`
+    const cmd = `git clone https://github.com/OliviaWYQ/MBTI.git && cd MBTI && npm install && npm run dev`
     navigator.clipboard.writeText(cmd).then(() => {
       btnAgent.textContent = '已复制!'
       setTimeout(() => { btnAgent.textContent = '复制一键部署命令' }, 2000)

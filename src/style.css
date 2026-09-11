@@ -1,13 +1,13 @@
 /* ========== CSS Variables ========== */
 :root {
-  --bg: #f0f4f1;
+  --bg: #faf3ea;
   --card-bg: #ffffff;
-  --text: #2c3e2d;
-  --text-secondary: #6b7b6e;
-  --accent: #4c6752;
-  --accent-light: #e8f0ea;
-  --accent-hover: #3d5443;
-  --border: #d8e0da;
+  --text: #3d2b1f;
+  --text-secondary: #8a7360;
+  --accent: #d96c2f;
+  --accent-light: #fbe8d8;
+  --accent-hover: #b8551f;
+  --border: #ecd9c5;
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   --font: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
@@ -320,18 +320,18 @@ body {
 }
 
 .level-low {
-  background: #fef3e2;
-  color: #b8860b;
+  background: #fbe8d8;
+  color: #b8551f;
 }
 
 .level-mid {
-  background: #e8f0ea;
-  color: #4c6752;
+  background: #f5ead9;
+  color: #8a7360;
 }
 
 .level-high {
-  background: #e2f0e8;
-  color: #2d7a4a;
+  background: #f9dcc3;
+  color: #d96c2f;
 }
 
 .dim-desc {
@@ -447,6 +447,48 @@ body {
   font-size: 0.75rem;
   color: var(--text-secondary);
   opacity: 0.7;
+}
+
+/* ========== 领养证登记 ========== */
+.adopt-section {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--accent-light);
+  border-radius: var(--radius);
+  border: 1px dashed var(--accent);
+}
+
+.adopt-note {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.adopt-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adopt-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--card-bg);
+}
+
+.adopt-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.adopt-input:disabled {
+  opacity: 0.6;
 }
 
 /* ========== Mobile ========== */
