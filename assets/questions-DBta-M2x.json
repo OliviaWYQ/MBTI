@@ -57,6 +57,7 @@
       "options": [
         { "label": "连夜设计一套自己的壳，还要发网上", "value": 3 },
         { "label": "先研究一下内部结构才睡得着", "value": 2 },
+        { "label": "会去搜别人的改装方案，看完等于我改了", "value": 2 },
         { "label": "原装就挺好，拆了多可惜", "value": 1 }
       ]
     },
@@ -77,6 +78,7 @@
       "text": "你为热爱花过最离谱的一笔钱是：",
       "options": [
         { "label": "几千块，眼都不眨", "value": 3 },
+        { "label": "几百块以内，花得干脆", "value": 2 },
         { "label": "超过500要做三天心理建设", "value": 1 },
         { "label": "我不为热爱花钱，我就是热爱本身", "value": 2 }
       ]
@@ -107,9 +109,10 @@
       "text": "你的桌面现在是什么状态？",
       "options": [
         { "label": "乱中有序的手办堆", "value": 1 },
-        { "label": "极简，只留必需品", "value": 2 },
-        { "label": "数码设备集中营", "value": 3 },
-        { "label": "空无一物", "value": 4 }
+        { "label": "正常桌面：电脑+杂物+一杯水", "value": 2 },
+        { "label": "极简，只留必需品", "value": 3 },
+        { "label": "数码设备集中营", "value": 4 },
+        { "label": "空无一物", "value": 5 }
       ]
     },
     {
@@ -119,8 +122,9 @@
       "options": [
         { "label": "自己", "value": 1 },
         { "label": "室友", "value": 2 },
-        { "label": "家人", "value": 3 },
-        { "label": "已经有一猫一狗", "value": 4 }
+        { "label": "和对象住", "value": 3 },
+        { "label": "家人", "value": 4 },
+        { "label": "已经有一猫一狗", "value": 5 }
       ]
     }
   ],
@@ -134,7 +138,8 @@
         { "label": "书桌", "value": 1 },
         { "label": "床", "value": 2 },
         { "label": "沙发", "value": 3 },
-        { "label": "地上（和宠物一起）", "value": 4 }
+        { "label": "地上（和宠物一起）", "value": 4 },
+        { "label": "飘窗或地毯", "value": 5 }
       ],
       "behavior": "Always shown at random position. If value 4 selected, CAT-H hidden personality is activated."
     },
