@@ -47,5 +47,6 @@
       { "questionId": "q7", "triggerValue": 2, "followId": "q7f2" }
     ]
   },
-  "adoptEndpoint": ""
+  "adoptEndpoint": "https://api.web3forms.com/submit",
+  "adoptKey": ""
 }

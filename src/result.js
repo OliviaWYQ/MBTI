@@ -5,7 +5,7 @@ const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
 const LEVEL_CLASS = { L: 'level-low', M: 'level-mid', H: 'level-high' }
 
 /** 领养证登记（本地 v1：localStorage；正式投放接表单服务） */
-function setupAdoption(primary) {
+function setupAdoption(primary, config) {
   const input = document.getElementById('email-input')
   const btn = document.getElementById('btn-adopt')
   const note = document.getElementById('adopt-note')
@@ -26,15 +26,16 @@ function setupAdoption(primary) {
     const ch = new URLSearchParams(location.search).get('ch') || 'direct'
     const record = { email, code: primary.code, cn: primary.cn, ch, ts: new Date().toISOString() }
 
-    // 有配置端点则 POST 到表单服务，失败或无端点时降级 localStorage
+    // 有配置 key 则 POST 到表单服务（默认 Web3Forms），失败或未配置时降级 localStorage
     const endpoint = config.adoptEndpoint
+    const accessKey = config.adoptKey
     let delivered = false
-    if (endpoint) {
+    if (endpoint && accessKey) {
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify(record),
+          body: JSON.stringify({ access_key: accessKey, subject: `猫BTI领养证登记 ${primary.code}`, ...record }),
         })
         delivered = res.ok
       } catch (e) {
@@ -52,7 +53,7 @@ function setupAdoption(primary) {
     input.disabled = true
     btn.disabled = true
     btn.textContent = '登记成功'
-    note.textContent = endpoint && delivered
+    note.textContent = accessKey && delivered
       ? `领养证排队中：${primary.code} · ${primary.cn}。上市当天见。`
       : `领养证排队中：${primary.code} · ${primary.cn}。（已本地记录）`
   }
@@ -147,7 +148,7 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
     mode === 'normal' ? config.display.funNote : config.display.funNoteSpecial
 
   // 领养证登记
-  setupAdoption(primary)
+  setupAdoption(primary, config)
 
   // 下载分享图
   const btnDownload = document.getElementById('btn-download')
