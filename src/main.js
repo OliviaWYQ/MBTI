@@ -49,15 +49,20 @@ async function init() {
   function onQuizComplete(answers, flags) {
     const scores = calcDimensionScores(answers, questions.main)
     const levels = scoresToLevels(scores, config.scoring)
+    // 彩蛋门双条件：选门值 + 作息维度为夜猫子（ND=H），均匀答题触发率 ~8.3%
+    const gateCfg = (config.flow && config.flow.gate) || {}
+    const req = gateCfg.requiresLevel
+    const levelOK = !req || levels[req.dim] === req.level
     const result = determineResult(
       levels,
       dimensions.order,
       types.standard,
       types.special,
-      { isCatPerson: !!flags.catperson },
+      { isCatPerson: !!flags.catperson && levelOK, userSeed: hashAnswers(answers) },
       config.scoring,
       config.specialCodes
     )
+    result.priceIntent = priceIntentOf(answers, questions)
 
     persistRecord({
       ts: new Date().toISOString(),
@@ -83,6 +88,36 @@ async function init() {
     quiz.start()
     showPage('quiz')
   })
+}
+
+/**
+ * 意向价格摘要：Q7 预算档位 + Gabor-Granger 追问答案，随领养证登记一起提交
+ */
+function priceIntentOf(answers, questions) {
+  const q7 = questions.main.find((q) => q.id === 'q7')
+  const opt = q7 && q7.options.find((o) => o.value === answers.q7)
+  if (!opt) return null
+  const yn = (v) => (v == null ? '' : v === 1 ? '愿意' : '不愿意')
+  return {
+    budget: opt.label.replace(/^.+?：/, ''),
+    upgrade_1499: yn(answers.q7f1),
+    upgrade_2499: yn(answers.q7f2),
+  }
+}
+
+/**
+ * 答案哈希（FNV-1a）：作为平票随机的用户种子，同一套答案结果稳定
+ */
+function hashAnswers(answers) {
+  let h = 2166136261
+  for (const k of Object.keys(answers).sort()) {
+    const s = `${k}:${answers[k]}`
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i)
+      h = Math.imul(h, 16777619)
+    }
+  }
+  return h >>> 0
 }
 
 init()
