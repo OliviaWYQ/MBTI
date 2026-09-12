@@ -12,12 +12,6 @@
         "H": [6, 7]
       }
     },
-    "tieBreak": {
-      "IE": "L",
-      "ND": "H",
-      "MF": "H",
-      "RP": "L"
-    },
     "levelNumeric": {
       "L": 1,
       "M": 2,
@@ -40,7 +34,8 @@
     "gate": {
       "questionId": "q13",
       "triggerValue": 4,
-      "flag": "catperson"
+      "flag": "catperson",
+      "requiresLevel": { "dim": "ND", "level": "H" }
     },
     "followUps": [
       { "questionId": "q7", "triggerValue": 1, "followId": "q7f1" },
