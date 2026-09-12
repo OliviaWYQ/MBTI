@@ -1,6 +1,7 @@
 /**
- * 生成分享图片 — 纯 Canvas 绘制，无外部依赖
+ * 生成分享图片 — Canvas 绘制 + qrcode 生成底部二维码
  */
+import QRCode from 'qrcode'
 
 const LEVEL_NUM = { L: 1, M: 2, H: 3 }
 const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
@@ -157,12 +158,32 @@ export async function generateShareImage(primary, userLevels, dimOrder, dimDefs,
     y -= 12
   }
 
-  // 底部水印（高度在裁剪时确定，先占位在内容下方）
+  // 底部：带渠道码的直达链接 + 二维码（用户转发图片时，收图人扫码即归入对应渠道）
   const contentBottom = y
-  const H = Math.max(contentBottom + 80, 900)
+  const H = Math.max(contentBottom + 218, 900)
+  const chParam = new URLSearchParams(location.search).get('ch')
+  const pageUrl = 'https://oliviawyq.github.io/MBTI/' + (chParam ? `?ch=${chParam}` : '')
+
+  // 二维码（生成失败不阻塞，仍保留文字链接）
+  try {
+    const qrDataUrl = await QRCode.toDataURL(pageUrl, { margin: 0, width: 240 })
+    const qrImg = new Image()
+    await new Promise((res, rej) => { qrImg.onload = res; qrImg.onerror = rej; qrImg.src = qrDataUrl })
+    const qrSize = 96
+    ctx.imageSmoothingEnabled = false
+    ctx.drawImage(qrImg, (W - qrSize) / 2, H - cardY - 66 - qrSize, qrSize, qrSize)
+    ctx.imageSmoothingEnabled = true
+  } catch (e) {
+    console.warn('QR generate failed', e)
+  }
+
   ctx.textAlign = 'center'
-  ctx.font = '400 18px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
+  ctx.font = '400 15px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillStyle = '#c9b8a6'
+  ctx.fillText(pageUrl.replace(/^https:\/\//, ''), W / 2, H - cardY - 48)
+
+  // 水印
+  ctx.font = '400 18px system-ui, "PingFang SC", "Microsoft YaHei", sans-serif'
   ctx.fillText('猫BTI · 仅供娱乐', W / 2, H - cardY - 24)
 
   // 按内容高度裁剪
@@ -277,11 +298,12 @@ function roundRect(ctx, x, y, w, h, r) {
  */
 function wrapText(ctx, text, maxWidth) {
   if (!text) return []
+  const NO_BREAK_BEFORE = '。，！？；：、）》」』”’…'
   const lines = []
   let line = ''
   for (const char of text) {
     const test = line + char
-    if (ctx.measureText(test).width > maxWidth && line) {
+    if (ctx.measureText(test).width > maxWidth && line && !NO_BREAK_BEFORE.includes(char)) {
       lines.push(line)
       line = char
     } else {

@@ -442,6 +442,39 @@ body {
   background: #2a2a2a;
 }
 
+/* ========== On-page QR ========== */
+.qr-section {
+  margin-top: 28px;
+  padding: 20px;
+  background: var(--bg);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.qr-onpage {
+  width: 148px;
+  height: 148px;
+  image-rendering: pixelated;
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px;
+  margin: 4px auto 8px;
+  display: block;
+}
+
+.qr-link {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 6px;
+}
+
+.qr-hint {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
 .agent-hint {
   margin-top: 8px;
   font-size: 0.75rem;

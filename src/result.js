@@ -1,11 +1,12 @@
 import { drawRadar } from './chart.js'
 import { generateShareImage } from './share.js'
+import QRCode from 'qrcode'
 
 const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
 const LEVEL_CLASS = { L: 'level-low', M: 'level-mid', H: 'level-high' }
 
 /** 领养证登记（本地 v1：localStorage；正式投放接表单服务） */
-function setupAdoption(primary, config) {
+function setupAdoption(primary, config, priceIntent) {
   const input = document.getElementById('email-input')
   const btn = document.getElementById('btn-adopt')
   const note = document.getElementById('adopt-note')
@@ -25,6 +26,7 @@ function setupAdoption(primary, config) {
     }
     const ch = new URLSearchParams(location.search).get('ch') || 'direct'
     const record = { email, code: primary.code, cn: primary.cn, ch, ts: new Date().toISOString() }
+    if (priceIntent) Object.assign(record, priceIntent)
 
     // 有配置 key 则 POST 到表单服务（默认 Web3Forms），失败或未配置时降级 localStorage
     const endpoint = config.adoptEndpoint
@@ -64,6 +66,7 @@ function setupAdoption(primary, config) {
  */
 export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
   const { primary, secondary, rankings, mode } = result
+  const priceIntent = result.priceIntent || null
 
   // Kicker
   const kicker = document.getElementById('result-kicker')
@@ -148,13 +151,25 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
     mode === 'normal' ? config.display.funNote : config.display.funNoteSpecial
 
   // 领养证登记
-  setupAdoption(primary, config)
+  setupAdoption(primary, config, priceIntent)
 
   // 下载分享图
   const btnDownload = document.getElementById('btn-download')
   btnDownload.onclick = () => {
     generateShareImage(primary, userLevels, dimOrder, dimDefs, mode)
   }
+
+  // 页面内二维码：扫码直达（带渠道码），与分享图底部 QR 一致
+  const chParam = new URLSearchParams(location.search).get('ch')
+  const pageUrl = 'https://oliviawyq.github.io/MBTI/' + (chParam ? `?ch=${chParam}` : '')
+  const qrImg = document.getElementById('qr-onpage')
+  if (qrImg) {
+    QRCode.toDataURL(pageUrl, { margin: 1, width: 296 })
+      .then((u) => { qrImg.src = u })
+      .catch(() => { qrImg.style.display = 'none' })
+  }
+  const qrLink = document.getElementById('qr-link')
+  if (qrLink) qrLink.textContent = pageUrl.replace(/^https:\/\//, '')
 
   // 复制开源部署命令（保留原项目出处）
   const btnAgent = document.getElementById('btn-agent')
