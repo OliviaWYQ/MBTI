@@ -63,6 +63,7 @@ async function init() {
       config.specialCodes
     )
     result.priceIntent = priceIntentOf(answers, questions)
+    result.answers = answers // 供匿名结果上报携带全部答案
 
     persistRecord({
       ts: new Date().toISOString(),

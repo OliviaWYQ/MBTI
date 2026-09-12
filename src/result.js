@@ -5,8 +5,44 @@ import QRCode from 'qrcode'
 const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
 const LEVEL_CLASS = { L: 'level-low', M: 'level-mid', H: 'level-high' }
 
+/**
+ * 匿名结果上报：结果页渲染即提交（不留邮箱），与领养证登记共用 run_id 去重。
+ * kind=anonymous_result，领养证登记为 kind=adoption（同一 run_id 的超集）。
+ */
+function submitAnonymous(primary, config, runId, ch, answers, priceIntent, userLevels, dimOrder, mode) {
+  const endpoint = config.adoptEndpoint
+  const accessKey = config.adoptKey
+  if (!endpoint || !accessKey) return
+  // 同一 run_id 只报一次（防重复渲染重复计数）
+  try {
+    const sent = JSON.parse(localStorage.getItem('maobi_anon_sent') || '[]')
+    if (sent.includes(runId)) return
+    sent.push(runId)
+    localStorage.setItem('maobi_anon_sent', JSON.stringify(sent))
+  } catch (e) { /* 忽略，继续上报 */ }
+  const record = {
+    access_key: accessKey,
+    subject: `猫BTI匿名结果 ${primary.code}`,
+    kind: 'anonymous_result',
+    run_id: runId,
+    code: primary.code,
+    cn: primary.cn,
+    mode,
+    ch,
+    levels: dimOrder.map((d) => userLevels[d] || 'M').join(''),
+    answers: JSON.stringify(answers || {}),
+    ts: new Date().toISOString(),
+  }
+  if (priceIntent) Object.assign(record, priceIntent)
+  fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(record),
+  }).catch((e) => console.warn('anonymous submit failed', e))
+}
+
 /** 领养证登记（本地 v1：localStorage；正式投放接表单服务） */
-function setupAdoption(primary, config, priceIntent) {
+function setupAdoption(primary, config, priceIntent, runId, ch, answers) {
   const input = document.getElementById('email-input')
   const btn = document.getElementById('btn-adopt')
   const note = document.getElementById('adopt-note')
@@ -24,9 +60,10 @@ function setupAdoption(primary, config, priceIntent) {
       note.textContent = '邮箱格式好像不太对，再检查一下？'
       return
     }
-    const ch = new URLSearchParams(location.search).get('ch') || 'direct'
     const record = { email, code: primary.code, cn: primary.cn, ch, ts: new Date().toISOString() }
     if (priceIntent) Object.assign(record, priceIntent)
+    if (runId) record.run_id = runId // 与匿名结果同一 run_id，分析时按组去重（登记行为超集）
+    if (answers) record.answers = JSON.stringify(answers) // 登记行自带全量答案，单条即完整记录
 
     // 有配置 key 则 POST 到表单服务（默认 Web3Forms），失败或未配置时降级 localStorage
     const endpoint = config.adoptEndpoint
@@ -37,7 +74,7 @@ function setupAdoption(primary, config, priceIntent) {
         const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ access_key: accessKey, subject: `猫BTI领养证登记 ${primary.code}`, ...record }),
+          body: JSON.stringify({ access_key: accessKey, subject: `猫BTI领养证登记 ${primary.code}`, kind: 'adoption', ...record }),
         })
         delivered = res.ok
       } catch (e) {
@@ -150,8 +187,16 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
   document.getElementById('disclaimer').textContent =
     mode === 'normal' ? config.display.funNote : config.display.funNoteSpecial
 
+  // run_id：本次测试唯一标识，匿名结果与领养证登记共用，分析时按组去重
+  const runId = (crypto.randomUUID && crypto.randomUUID()) || `r${Date.now()}${Math.random().toString(36).slice(2, 8)}`
+  try { localStorage.setItem('maobi_last_run', runId) } catch (e) { /* 忽略 */ }
+
+  // 匿名结果上报（不留邮箱，结果页渲染即提交）
+  const chParamAnon = new URLSearchParams(location.search).get('ch') || 'direct'
+  submitAnonymous(primary, config, runId, chParamAnon, result.answers, priceIntent, userLevels, dimOrder, mode)
+
   // 领养证登记
-  setupAdoption(primary, config, priceIntent)
+  setupAdoption(primary, config, priceIntent, runId, chParamAnon, result.answers)
 
   // 下载分享图
   const btnDownload = document.getElementById('btn-download')

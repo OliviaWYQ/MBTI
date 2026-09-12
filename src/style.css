@@ -497,6 +497,13 @@ body {
   margin-bottom: 12px;
 }
 
+.adopt-privacy {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  margin-top: 10px;
+}
+
 .adopt-form {
   display: flex;
   gap: 8px;
