@@ -79,6 +79,13 @@ body {
   color: var(--text);
 }
 
+.intro-premise {
+  margin: 16px auto 0;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
 .intro-credit {
   margin-top: 20px;
   font-size: 0.85rem;
