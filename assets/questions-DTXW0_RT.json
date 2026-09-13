@@ -1,0 +1,169 @@
+{
+  "main": [
+    {
+      "id": "q1",
+      "dim": "IE",
+      "text": "我的理想桌面：有个小东西安静趴着，比空着强。",
+      "options": [
+        { "label": "不认同，我要的是互动", "value": 3 },
+        { "label": "中立，有没有都行", "value": 2 },
+        { "label": "认同，它在就行", "value": 1 }
+      ]
+    },
+    {
+      "id": "q2",
+      "dim": "IE",
+      "text": "如果你的机器猫只会一个小把戏，你更可能：",
+      "options": [
+        { "label": "教会它十个新把戏，每天换着玩", "value": 3 },
+        { "label": "它自己玩就好，我负责看", "value": 2 },
+        { "label": "就这一个把戏，我能看一年", "value": 1 }
+      ]
+    },
+    {
+      "id": "q3",
+      "dim": "ND",
+      "text": "我真正的活跃时间在深夜。",
+      "options": [
+        { "label": "不认同", "value": 1 },
+        { "label": "中立", "value": 2 },
+        { "label": "认同", "value": 3 }
+      ]
+    },
+    {
+      "id": "q4",
+      "dim": "ND",
+      "text": "凌晨一点你合上电脑，发现它也没睡，正在桌上踱步。你：",
+      "options": [
+        { "label": "烦，别吵我，明天还要当人", "value": 1 },
+        { "label": "先rua一把再说", "value": 2 },
+        { "label": "它也没睡？那我们就是同伙", "value": 3 }
+      ]
+    },
+    {
+      "id": "q5",
+      "dim": "MF",
+      "text": "我喜欢折腾自己的东西（刷机、改装、做配件都算）。",
+      "options": [
+        { "label": "不认同", "value": 1 },
+        { "label": "中立", "value": 2 },
+        { "label": "认同", "value": 3 }
+      ]
+    },
+    {
+      "id": "q6",
+      "dim": "MF",
+      "text": "它能拆壳换壳。你的第一反应：",
+      "options": [
+        { "label": "连夜设计一套自己的壳，还要发网上", "value": 3 },
+        { "label": "先研究一下内部结构才睡得着", "value": 2 },
+        { "label": "会去搜别人的改装方案，看完等于我改了", "value": 2 },
+        { "label": "原装就挺好，拆了多可惜", "value": 1 }
+      ]
+    },
+    {
+      "id": "q7",
+      "dim": "RP",
+      "text": "你是哪种人？给小伙伴的安家预算：",
+      "options": [
+        { "label": "兜里就这点：¥999", "value": 1 },
+        { "label": "省省能出：¥1,999", "value": 2 },
+        { "label": "不当回事：¥2,999", "value": 3 },
+        { "label": "这还能叫钱：¥4,999+", "value": 4 }
+      ]
+    },
+    {
+      "id": "q8",
+      "dim": "RP",
+      "text": "你为热爱花过最离谱的一笔钱是：",
+      "options": [
+        { "label": "几千块，眼都不眨", "value": 3 },
+        { "label": "几百块以内，花得干脆", "value": 2 },
+        { "label": "超过500要做三天心理建设", "value": 1 },
+        { "label": "我不为热爱花钱，我就是热爱本身", "value": 2 }
+      ]
+    },
+    {
+      "id": "q9",
+      "dim": "X1",
+      "text": "如果它半夜蹲在床头看你（不是人形，是猫形），你的第一反应：",
+      "options": [
+        { "label": "心化了", "value": 1 },
+        { "label": "有点瘆人，但还行", "value": 2 },
+        { "label": "还好它不是人形", "value": 3 }
+      ]
+    },
+    {
+      "id": "q10",
+      "dim": "X2",
+      "text": "“摸头会回应、会看你伸懒腰、断网也能玩”——你的反应：",
+      "options": [
+        { "label": "心动，想看实物", "value": 1 },
+        { "label": "有点意思", "value": 2 },
+        { "label": "无感", "value": 3 }
+      ]
+    },
+    {
+      "id": "q11",
+      "dim": "X3",
+      "text": "你的桌面现在是什么状态？",
+      "options": [
+        { "label": "乱中有序的手办堆", "value": 1 },
+        { "label": "正常桌面：电脑+杂物+一杯水", "value": 2 },
+        { "label": "极简，只留必需品", "value": 3 },
+        { "label": "数码设备集中营", "value": 4 },
+        { "label": "空无一物", "value": 5 }
+      ]
+    },
+    {
+      "id": "q12",
+      "dim": "X4",
+      "text": "谁和你住？",
+      "options": [
+        { "label": "自己", "value": 1 },
+        { "label": "室友", "value": 2 },
+        { "label": "和对象住", "value": 3 },
+        { "label": "家人", "value": 4 },
+        { "label": "已经有一猫一狗", "value": 5 }
+      ]
+    }
+  ],
+  "special": [
+    {
+      "id": "q13",
+      "special": true,
+      "kind": "cat_gate",
+      "text": "你在家最常窝在哪？",
+      "options": [
+        { "label": "书桌", "value": 1 },
+        { "label": "床", "value": 2 },
+        { "label": "沙发", "value": 3 },
+        { "label": "地上（和宠物一起）", "value": 4 },
+        { "label": "飘窗或地毯", "value": 5 }
+      ],
+      "behavior": "Always shown at random position. If value 4 selected, CAT-H hidden personality is activated."
+    },
+    {
+      "id": "q7f1",
+      "special": true,
+      "kind": "price_followup",
+      "text": "猫猫多问一句：如果预算是 ¥1,499，你还愿意考虑吗？",
+      "options": [
+        { "label": "愿意", "value": 1 },
+        { "label": "不愿意", "value": 2 }
+      ],
+      "behavior": "Only shown if q7 == 1. Unscored."
+    },
+    {
+      "id": "q7f2",
+      "special": true,
+      "kind": "price_followup",
+      "text": "猫猫多问一句：如果预算是 ¥2,499，你还愿意考虑吗？",
+      "options": [
+        { "label": "愿意", "value": 1 },
+        { "label": "不愿意", "value": 2 }
+      ],
+      "behavior": "Only shown if q7 == 2. Unscored."
+    }
+  ]
+}
