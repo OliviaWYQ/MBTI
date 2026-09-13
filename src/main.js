@@ -1,3 +1,4 @@
+import { createAnalytics, saveLocal } from './analytics.js'
 import { calcDimensionScores, scoresToLevels, determineResult } from './engine.js'
 import { createQuiz } from './quiz.js'
 import { renderResult } from './result.js'
@@ -5,25 +6,8 @@ import './style.css'
 
 async function loadJSON(path) {
   const res = await fetch(path)
+  if (!res.ok) throw new Error('测试内容加载失败')
   return res.json()
-}
-
-/** 渠道码：URL ?ch=a / ?ch=b，默认 direct */
-function getChannel() {
-  const ch = new URLSearchParams(location.search).get('ch')
-  return ch || 'direct'
-}
-
-/** 本地记录（无后端 v1：存 localStorage，正式投放需接表单服务） */
-function persistRecord(record) {
-  try {
-    const key = 'maobi_records'
-    const list = JSON.parse(localStorage.getItem(key) || '[]')
-    list.push(record)
-    localStorage.setItem(key, JSON.stringify(list))
-  } catch (e) {
-    console.warn('record persist failed', e)
-  }
 }
 
 async function init() {
@@ -33,6 +17,10 @@ async function init() {
     loadJSON(new URL('../data/types.json', import.meta.url).href),
     loadJSON(new URL('../data/config.json', import.meta.url).href),
   ])
+
+  const analytics = createAnalytics(config)
+  analytics.track('landing_view')
+  let runId
 
   const pages = {
     intro: document.getElementById('page-intro'),
@@ -65,27 +53,35 @@ async function init() {
     result.priceIntent = priceIntentOf(answers, questions)
     result.answers = answers // 供匿名结果上报携带全部答案
 
-    persistRecord({
+    result.runId = runId
+    analytics.track('quiz_complete', { code: result.primary.code, question_count: Object.keys(answers).length })
+    saveLocal('maobi_records', {
+      run_id: runId,
       ts: new Date().toISOString(),
-      ch: getChannel(),
+      ...analytics.source,
       answers,
       code: result.primary.code,
       mode: result.mode,
       levels,
     })
 
-    renderResult(result, levels, dimensions.order, dimensions.definitions, config)
+    renderResult(result, levels, dimensions.order, dimensions.definitions, config, analytics)
     showPage('result')
+    analytics.track('result_view', { code: result.primary.code })
   }
 
   const quiz = createQuiz(questions, config, onQuizComplete)
 
+  document.getElementById('btn-start').disabled = false
+  document.getElementById('btn-start').textContent = '开始测试'
   document.getElementById('btn-start').addEventListener('click', () => {
+    runId = analytics.start()
     quiz.start()
     showPage('quiz')
   })
 
   document.getElementById('btn-restart').addEventListener('click', () => {
+    runId = analytics.start()
     quiz.start()
     showPage('quiz')
   })
@@ -121,4 +117,9 @@ function hashAnswers(answers) {
   return h >>> 0
 }
 
-init()
+init().catch(() => {
+  const btn = document.getElementById('btn-start')
+  btn.disabled = false
+  btn.textContent = '加载失败，点我重试'
+  btn.onclick = () => location.reload()
+})

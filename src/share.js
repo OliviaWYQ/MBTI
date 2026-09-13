@@ -1,3 +1,4 @@
+import { shareUrl } from './analytics.js'
 /**
  * 生成分享图片 — Canvas 绘制 + qrcode 生成底部二维码
  */
@@ -161,8 +162,7 @@ export async function generateShareImage(primary, userLevels, dimOrder, dimDefs,
   // 底部：带渠道码的直达链接 + 二维码（用户转发图片时，收图人扫码即归入对应渠道）
   const contentBottom = y
   const H = Math.max(contentBottom + 218, 900)
-  const chParam = new URLSearchParams(location.search).get('ch')
-  const pageUrl = 'https://oliviawyq.github.io/MBTI/' + (chParam ? `?ch=${chParam}` : '')
+  const pageUrl = shareUrl('share_image')
 
   // 二维码（生成失败不阻塞，仍保留文字链接）
   try {

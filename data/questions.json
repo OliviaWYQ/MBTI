@@ -89,7 +89,7 @@
       "text": "如果它半夜蹲在床头看你（不是人形，是猫形），你的第一反应：",
       "options": [
         { "label": "心化了", "value": 1 },
-        { "label": "有点渗人，但还行", "value": 2 },
+        { "label": "有点瘆人，但还行", "value": 2 },
         { "label": "还好它不是人形", "value": 3 }
       ]
     },
@@ -147,7 +147,7 @@
       "id": "q7f1",
       "special": true,
       "kind": "price_followup",
-      "text": "那……如果是 ¥1,499 呢？",
+      "text": "猫猫多问一句：如果预算是 ¥1,499，你还愿意考虑吗？",
       "options": [
         { "label": "愿意", "value": 1 },
         { "label": "不愿意", "value": 2 }
@@ -158,7 +158,7 @@
       "id": "q7f2",
       "special": true,
       "kind": "price_followup",
-      "text": "那……咬咬牙，¥2,499 呢？",
+      "text": "猫猫多问一句：如果预算是 ¥2,499，你还愿意考虑吗？",
       "options": [
         { "label": "愿意", "value": 1 },
         { "label": "不愿意", "value": 2 }

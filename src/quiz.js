@@ -19,6 +19,7 @@ export function createQuiz(questions, config, onComplete) {
   let current = 0
   let answers = {}
   let flags = {}
+  let baseCount = 0
 
   const els = {
     fill: document.getElementById('progress-fill'),
@@ -32,9 +33,10 @@ export function createQuiz(questions, config, onComplete) {
   }
 
   function updateProgress() {
-    const pct = (current / totalCount()) * 100
-    els.fill.style.width = pct + '%'
-    els.text.textContent = `${current} / ${totalCount()}`
+    const completed = queue.slice(0, current).filter(q => q.kind !== 'price_followup').length
+    const extra = queue[current]?.kind === 'price_followup'
+    els.fill.style.width = `${completed / baseCount * 100}%`
+    els.text.textContent = extra ? '猫猫悄悄追问一句 · 不影响猫格' : `已探索 ${completed} 个场景 · 猫格拼图中`
   }
 
   function renderQuestion() {
@@ -51,9 +53,12 @@ export function createQuiz(questions, config, onComplete) {
     })
 
     updateProgress()
+    els.qText.focus({ preventScroll: true })
+    window.scrollTo(0, 0)
   }
 
   function selectOption(question, option) {
+    if (queue[current] !== question) return
     answers[question.id] = option.value
 
     // 触发式追问（如价格题的 Gabor-Granger 追问）
@@ -85,6 +90,7 @@ export function createQuiz(questions, config, onComplete) {
     answers = {}
     flags = {}
     queue = gateQuestion ? insertAtRandom(shuffle(questions.main), gateQuestion) : shuffle(questions.main)
+    baseCount = queue.length
     renderQuestion()
   }
 

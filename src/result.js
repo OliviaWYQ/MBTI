@@ -1,3 +1,4 @@
+import { getSource, shareUrl, saveLocal, postJSON } from './analytics.js'
 import { drawRadar } from './chart.js'
 import { generateShareImage } from './share.js'
 import QRCode from 'qrcode'
@@ -5,110 +6,125 @@ import QRCode from 'qrcode'
 const LEVEL_LABEL = { L: '低', M: '中', H: '高' }
 const LEVEL_CLASS = { L: 'level-low', M: 'level-mid', H: 'level-high' }
 
-/**
- * 匿名结果上报：结果页渲染即提交（不留邮箱），与领养证登记共用 run_id 去重。
- * kind=anonymous_result，领养证登记为 kind=adoption（同一 run_id 的超集）。
- */
-function submitAnonymous(primary, config, runId, ch, answers, priceIntent, userLevels, dimOrder, mode) {
-  const endpoint = config.adoptEndpoint
-  const accessKey = config.adoptKey
-  if (!endpoint || !accessKey) return
-  // 同一 run_id 只报一次（防重复渲染重复计数）
+const PREFERENCES = [
+  ['recognize_me', '认得我，记住我们的小习惯'],
+  ['chat', '陪我聊天，接住我的碎碎念'],
+  ['move', '自己走动，探索身边的小世界'],
+  ['personality', '有自己的性格，偶尔有点小脾气'],
+  ['affection', '会撒娇，摸摸就有回应'],
+  ['customize', '能换外观，打扮成我的专属猫'],
+  ['quiet_company', '安静待在身边，陪着就好'],
+]
+
+async function submitRecord(config, kind, record) {
+  if (!config.adoptEndpoint || !config.adoptKey) return false
   try {
-    const sent = JSON.parse(localStorage.getItem('maobi_anon_sent') || '[]')
-    if (sent.includes(runId)) return
-    sent.push(runId)
-    localStorage.setItem('maobi_anon_sent', JSON.stringify(sent))
-  } catch (e) { /* 忽略，继续上报 */ }
-  const record = {
-    access_key: accessKey,
-    subject: `猫BTI匿名结果 ${primary.code}`,
-    kind: 'anonymous_result',
-    run_id: runId,
-    code: primary.code,
-    cn: primary.cn,
-    mode,
-    ch,
-    levels: dimOrder.map((d) => userLevels[d] || 'M').join(''),
-    answers: JSON.stringify(answers || {}),
-    ts: new Date().toISOString(),
-  }
-  if (priceIntent) Object.assign(record, priceIntent)
-  fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(record),
-  }).catch((e) => console.warn('anonymous submit failed', e))
+    return await postJSON(config.adoptEndpoint, {
+      access_key: config.adoptKey, subject: `猫BTI ${kind} ${record.code}`,
+      kind, ...record,
+    })
+  } catch { return false }
 }
 
-/** 领养证登记（本地 v1：localStorage；正式投放接表单服务） */
-function setupAdoption(primary, config, priceIntent, runId, ch, answers) {
+function setupPreference(config, record, analytics) {
+  const form = document.getElementById('preference-form')
+  const options = document.getElementById('preference-options')
+  const btn = document.getElementById('btn-preference')
+  const status = document.getElementById('preference-status')
+  options.querySelectorAll('label').forEach(el => el.remove())
+  options.disabled = false
+  btn.disabled = false
+  btn.textContent = '许个愿'
+  status.textContent = '可以直接跳过，继续看你的猫格 ↓'
+  for (const [value, text] of PREFERENCES) {
+    const label = document.createElement('label')
+    const input = document.createElement('input')
+    input.type = 'radio'
+    input.name = 'product_preference'
+    input.value = value
+    label.append(input, document.createTextNode(text))
+    options.append(label)
+  }
+  form.onsubmit = async event => {
+    event.preventDefault()
+    if (btn.disabled) return
+    const selected = new FormData(form).get('product_preference')
+    if (!selected) { status.textContent = '选一个最心动的，或直接跳过就好。'; return }
+    record.product_preference = selected
+    record.product_preference_label = PREFERENCES.find(([value]) => value === selected)[1]
+    btn.disabled = true
+    options.disabled = true
+    btn.textContent = '愿望传送中…'
+    const snapshot = { ...record, ts: new Date().toISOString() }
+    const stored = saveLocal('maobi_preferences', snapshot)
+    analytics.track('product_preference', { preference: selected, code: record.code }, record.run_id)
+    const delivered = await submitRecord(config, 'product_preference', snapshot)
+    analytics.track('preference_delivery', { delivered }, record.run_id)
+    if (form.dataset.runId !== record.run_id) return
+    if (delivered) {
+      btn.textContent = '愿望已收到'
+      status.textContent = '谢谢！这份小心愿会帮我们打磨未来的机器猫。'
+    } else {
+      btn.disabled = false
+      options.disabled = false
+      btn.textContent = '重新发送愿望'
+      status.textContent = stored ? '愿望已保存在这台设备，暂未送达，可重试或继续看猫格。' : '愿望暂未送达，请重试或继续看猫格。'
+    }
+  }
+  form.dataset.runId = record.run_id
+}
+
+function setupAdoption(config, record, analytics) {
+  const form = document.getElementById('adopt-form')
   const input = document.getElementById('email-input')
   const btn = document.getElementById('btn-adopt')
   const note = document.getElementById('adopt-note')
-  if (!input || !btn) return
-
+  form.dataset.runId = record.run_id
   input.value = ''
   input.disabled = false
   btn.disabled = false
   btn.textContent = '登记领养证'
-  note.textContent = '它预计明年上市，上市当天生成你的专属猫格领养证。'
-
-  btn.onclick = async () => {
+  note.textContent = '机器猫首批开放体验时，通知你来领取专属猫格领养证。'
+  form.onsubmit = async event => {
+    event.preventDefault()
+    if (btn.disabled) return
     const email = input.value.trim()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       note.textContent = '邮箱格式好像不太对，再检查一下？'
+      input.focus()
       return
     }
-    const record = { email, code: primary.code, cn: primary.cn, ch, ts: new Date().toISOString() }
-    if (priceIntent) Object.assign(record, priceIntent)
-    if (runId) record.run_id = runId // 与匿名结果同一 run_id，分析时按组去重（登记行为超集）
-    if (answers) record.answers = JSON.stringify(answers) // 登记行自带全量答案，单条即完整记录
-
-    // 有配置 key 则 POST 到表单服务（默认 Web3Forms），失败或未配置时降级 localStorage
-    const endpoint = config.adoptEndpoint
-    const accessKey = config.adoptKey
-    let delivered = false
-    if (endpoint && accessKey) {
-      try {
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ access_key: accessKey, subject: `猫BTI领养证登记 ${primary.code}`, kind: 'adoption', ...record }),
-        })
-        delivered = res.ok
-      } catch (e) {
-        delivered = false
-      }
-    }
-    try {
-      const key = 'maobi_adoptions'
-      const list = JSON.parse(localStorage.getItem(key) || '[]')
-      list.push({ ...record, delivered })
-      localStorage.setItem(key, JSON.stringify(list))
-    } catch (e) {
-      console.warn('adoption persist failed', e)
-    }
-    input.disabled = true
     btn.disabled = true
-    btn.textContent = '登记成功'
-    note.textContent = accessKey && delivered
-      ? `领养证排队中：${primary.code} · ${primary.cn}。上市当天见。`
-      : `领养证排队中：${primary.code} · ${primary.cn}。（已本地记录）`
+    input.disabled = true
+    btn.textContent = '登记中…'
+    analytics.track('adoption_submit', { code: record.code }, record.run_id)
+    // Snapshot preferences at submission time; later preferences still join by run_id.
+    const snapshot = { ...record, email, ts: new Date().toISOString() }
+    const delivered = await submitRecord(config, 'adoption', snapshot)
+    analytics.track(delivered ? 'adoption_success' : 'adoption_failure', { code: record.code }, record.run_id)
+    // Do not persist contact information on a shared device.
+    saveLocal('maobi_adoptions', { run_id: record.run_id, code: record.code, delivered, ts: snapshot.ts })
+    if (form.dataset.runId !== record.run_id) return
+    btn.disabled = delivered
+    input.disabled = delivered
+    btn.textContent = delivered ? '登记成功' : '重新登记'
+    note.textContent = delivered
+      ? `领养证排队中：${record.code} · ${record.cn}。首批开放体验时邮件通知你。`
+      : '暂未登记成功，请稍后重试；只有成功送达后才能收到通知。'
   }
 }
 
 /**
  * 渲染测试结果
  */
-export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
+export function renderResult(result, userLevels, dimOrder, dimDefs, config, analytics) {
   const { primary, secondary, rankings, mode } = result
   const priceIntent = result.priceIntent || null
 
   // Kicker
   const kicker = document.getElementById('result-kicker')
   if (mode === 'hidden') kicker.textContent = '隐藏人格已激活'
-  else if (mode === 'fallback') kicker.textContent = '系统强制兜底'
+  else if (mode === 'fallback') kicker.textContent = '不被定义的自由猫格'
   else kicker.textContent = '你的主猫格'
 
   // 主类型
@@ -187,28 +203,49 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
   document.getElementById('disclaimer').textContent =
     mode === 'normal' ? config.display.funNote : config.display.funNoteSpecial
 
-  // run_id：本次测试唯一标识，匿名结果与领养证登记共用，分析时按组去重
-  const runId = (crypto.randomUUID && crypto.randomUUID()) || `r${Date.now()}${Math.random().toString(36).slice(2, 8)}`
-  try { localStorage.setItem('maobi_last_run', runId) } catch (e) { /* 忽略 */ }
+  const runId = result.runId
+  const record = {
+    run_id: runId, code: primary.code, cn: primary.cn, mode,
+    ...getSource(), levels: dimOrder.map(d => userLevels[d] || 'M').join(''),
+    answers: JSON.stringify(result.answers || {}), ...priceIntent,
+    product_preference: null, ts: new Date().toISOString(),
+  }
+  submitRecord(config, 'anonymous_result', record).then(delivered => {
+    analytics.track('anonymous_delivery', { delivered }, runId)
+  })
+  setupPreference(config, record, analytics)
+  setupAdoption(config, record, analytics)
 
-  // 匿名结果上报（不留邮箱，结果页渲染即提交）
-  const chParamAnon = new URLSearchParams(location.search).get('ch') || 'direct'
-  submitAnonymous(primary, config, runId, chParamAnon, result.answers, priceIntent, userLevels, dimOrder, mode)
-
-  // 领养证登记
-  setupAdoption(primary, config, priceIntent, runId, chParamAnon, result.answers)
-
-  // 下载分享图
+  const shareStatus = document.getElementById('share-status')
+  shareStatus.textContent = ''
   const btnDownload = document.getElementById('btn-download')
-  btnDownload.onclick = () => {
-    generateShareImage(primary, userLevels, dimOrder, dimDefs, mode)
+  btnDownload.disabled = false
+  btnDownload.textContent = '保存分享图片'
+  btnDownload.onclick = async () => {
+    btnDownload.disabled = true
+    analytics.track('share_image_click', {}, runId)
+    try {
+      await generateShareImage(primary, userLevels, dimOrder, dimDefs, mode)
+      analytics.track('share_image_generated', {}, runId)
+      shareStatus.textContent = '图片已生成；若未自动保存，请检查浏览器下载。'
+    } catch {
+      analytics.track('share_image_failure', {}, runId)
+      shareStatus.textContent = '图片生成失败，请重试，或复制测试链接。'
+    } finally { btnDownload.disabled = false }
+  }
+  document.getElementById('btn-copy-link').onclick = async () => {
+    analytics.track('share_link_click', {}, runId)
+    try {
+      await navigator.clipboard.writeText(shareUrl('share_link'))
+      analytics.track('share_link_copied', {}, runId)
+      shareStatus.textContent = '链接已复制，发给朋友一起测吧。'
+    } catch { shareStatus.textContent = '暂时无法复制，可分享下方二维码。' }
   }
 
-  // 页面内二维码：扫码直达（带渠道码），与分享图底部 QR 一致
-  const chParam = new URLSearchParams(location.search).get('ch')
-  const pageUrl = 'https://oliviawyq.github.io/MBTI/' + (chParam ? `?ch=${chParam}` : '')
+  const pageUrl = shareUrl('result_qr')
   const qrImg = document.getElementById('qr-onpage')
   if (qrImg) {
+    qrImg.style.display = ''
     QRCode.toDataURL(pageUrl, { margin: 1, width: 296 })
       .then((u) => { qrImg.src = u })
       .catch(() => { qrImg.style.display = 'none' })
@@ -223,6 +260,6 @@ export function renderResult(result, userLevels, dimOrder, dimDefs, config) {
     navigator.clipboard.writeText(cmd).then(() => {
       btnAgent.textContent = '已复制!'
       setTimeout(() => { btnAgent.textContent = '复制一键部署命令' }, 2000)
-    })
+    }).catch(() => { btnAgent.textContent = '复制失败，请手动复制上方命令' })
   }
 }

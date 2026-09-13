@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>猫BTI 人格测试</title>
-  <meta name="description" content="MBTI已经过时，猫BTI来了。8道题，测出你的猫格类型。" />
+  <meta name="description" content="MBTI已经过时，猫BTI来了。约3分钟，测出你的猫格类型。" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐱</text></svg>" />
   <link rel="stylesheet" href="/src/style.css" />
 </head>
@@ -14,10 +14,10 @@
     <section id="page-intro" class="page active">
       <div class="card intro-card">
         <h1 class="intro-title">MBTI已经过时，<br/>猫BTI来了。</h1>
-        <p class="intro-premise">假设一只机器猫即将住进你家，<br/>通过 8 道生活场景题，测出你是哪种猫格。</p>
-        <button id="btn-start" class="btn btn-primary">开始测试</button>
+        <p class="intro-premise">假设一只机器猫即将住进你家，<br/>聊聊生活小场景，测出你是哪种猫格。</p>
+        <button id="btn-start" class="btn btn-primary" disabled>猫猫准备中…</button>
         <p class="intro-credit">开源二创 · 基于 SBTI 与 B站UP主@蛆肉儿串儿 原创测试</p>
-        <p class="intro-note">本测试仅供娱乐 · 约 3 分钟</p>
+        <p class="intro-note">本测试仅供娱乐 · 约 3 分钟 · 偶尔有猫猫追问<br/>答案与来源用于匿名产品研究，邮箱登记自愿。</p>
       </div>
     </section>
 
@@ -27,9 +27,9 @@
         <div class="progress-bar">
           <div class="progress-fill" id="progress-fill"></div>
         </div>
-        <div class="progress-text" id="progress-text">0 / 13</div>
+        <div class="progress-text" id="progress-text" aria-live="polite">猫格拼图中</div>
         <div class="question-area">
-          <p class="question-text" id="question-text"></p>
+          <p class="question-text" id="question-text" tabindex="-1"></p>
         </div>
         <div class="options" id="options"></div>
       </div>
@@ -50,6 +50,16 @@
           <div class="secondary-info" id="secondary-info"></div>
         </div>
 
+        <section class="preference-section" aria-labelledby="preference-title">
+          <h3 class="section-title" id="preference-title">给未来的它许个愿</h3>
+          <p class="adopt-note">如果你的猫格真的变成一只实体机器猫，你最希望它具备什么能力？</p>
+          <form id="preference-form">
+            <fieldset id="preference-options"><legend>选一个最心动的（选填，不影响猫格）</legend></fieldset>
+            <button class="btn btn-secondary" id="btn-preference" type="submit">许个愿</button>
+            <p id="preference-status" class="adopt-note" role="status">可以直接跳过，继续看你的猫格 ↓</p>
+          </form>
+        </section>
+
         <h3 class="section-title">四维猫格解析</h3>
         <canvas id="radar-chart" width="320" height="320"></canvas>
         <div class="dimensions-detail" id="dimensions-detail"></div>
@@ -61,18 +71,20 @@
 
         <div class="adopt-section">
           <h3 class="section-title">专属猫格领养证</h3>
-          <p class="adopt-note" id="adopt-note">它预计明年上市，上市当天生成你的专属猫格领养证。</p>
-          <div class="adopt-form">
-            <input type="email" id="email-input" class="adopt-input" placeholder="留下邮箱" />
+          <p class="adopt-note" id="adopt-note" role="status">机器猫首批开放体验时，通知你来领取专属猫格领养证。</p>
+          <form class="adopt-form" id="adopt-form">
+            <input type="email" id="email-input" class="adopt-input" placeholder="留下邮箱" aria-label="接收体验通知的邮箱" autocomplete="email" />
             <button id="btn-adopt" class="btn btn-primary">登记领养证</button>
-          </div>
-          <p class="adopt-privacy">本次结果已匿名提交用于统计，不含任何联系方式；只有登记邮箱才会收到领养证通知。</p>
+          </form>
+          <p class="adopt-privacy">答案用于匿名产品研究；邮箱仅用于首批体验与领养证通知。登记不代表购买或预订。</p>
         </div>
 
         <div class="disclaimer" id="disclaimer"></div>
 
         <div class="result-actions">
           <button id="btn-download" class="btn btn-primary">保存分享图片</button>
+          <button id="btn-copy-link" class="btn btn-secondary">复制测试链接</button>
+          <p id="share-status" role="status"></p>
           <button id="btn-restart" class="btn btn-secondary">重新测试</button>
         </div>
 
@@ -80,7 +92,7 @@
           <h3 class="section-title">扫码直接测</h3>
           <img id="qr-onpage" class="qr-onpage" alt="猫BTI 入口二维码" />
           <p class="qr-link" id="qr-link"></p>
-          <p class="qr-hint">转发此页或分享图都会自动带上渠道码，来源可追溯</p>
+          <p class="qr-hint">把你的猫格分享给朋友，看看谁和你是同类。</p>
         </div>
 
         <div class="agent-section">

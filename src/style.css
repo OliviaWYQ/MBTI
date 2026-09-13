@@ -552,3 +552,21 @@ body {
     padding: 24px 16px;
   }
 }
+
+/* Optional wish card stays in the existing warm visual theme. */
+.preference-section { margin: 24px 0; text-align: left; }
+#preference-options { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; }
+#preference-options legend { font-size: .8rem; color: var(--text-secondary); margin-bottom: 10px; }
+#preference-options label { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: .85rem; }
+#preference-options label:has(input:checked) { background: var(--accent-light); border-color: var(--accent); }
+#preference-options input { accent-color: var(--accent); flex-shrink: 0; }
+#preference-status { margin-top: 10px; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.btn:disabled { opacity: .65; cursor: wait; }
+#share-status { font-size: .8rem; color: var(--text-secondary); width: 100%; }
+.qr-link { overflow-wrap: anywhere; }
+#radar-chart { max-width: 100%; height: auto; }
+@media (max-width: 480px) {
+  .adopt-input { min-width: 0; width: 100%; flex-basis: 100%; font-size: 16px; }
+  .adopt-form .btn { width: 100%; }
+}
